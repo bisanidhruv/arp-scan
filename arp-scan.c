@@ -216,7 +216,7 @@ main(int argc, char *argv[]) {
                 pcap_datalink_val_to_name(datalink),
                 pcap_datalink_val_to_description(datalink));
 		if(xml >0){
-		   fprintf(fptr, "<detail>Interface: %s, datalink type: %s (%s)</detail> /n",
+		   fprintf(fptr, "\t<detail>Interface: %s, datalink type: %s (%s)</detail> \n",
                 	pkt_read_file_flag ? "savefile" : if_name,
 	                pcap_datalink_val_to_name(datalink),
 	                pcap_datalink_val_to_description(datalink));
@@ -411,6 +411,7 @@ main(int argc, char *argv[]) {
 
       if (verbose) {
          warn_msg("Using %s for localnet", localnet_descr);
+	 
       }
       add_host_pattern(localnet_descr, timeout);
    } else {             /* Populate list from command line arguments */
@@ -497,6 +498,8 @@ main(int argc, char *argv[]) {
    if (!plain_flag) {
       printf("Starting %s with %u hosts (http://www.nta-monitor.com/tools/arp-scan/)\n",
           PACKAGE_STRING, num_hosts);
+      if(xml>0) { fprintf(fptr, "\t<detail>Starting %s with %u hosts (http://www.nta-monitor.com/tools/arp-scan/)</detail> \n",
+          PACKAGE_STRING, num_hosts); }
    }
 /*
  *      Display the lists if verbose setting is 3 or more.
@@ -617,10 +620,10 @@ main(int argc, char *argv[]) {
       printf("Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded\n",
              PACKAGE_STRING, num_hosts, elapsed_seconds,
              num_hosts/elapsed_seconds, responders);
-	fprintf(fptr, "<ending>\"Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded</ending> \n",
-	     PACKAGE_STRING, num_hosts, elapsed_seconds,
-             num_hosts/elapsed_seconds, responders);
-	fprintf(fptr, "</arpscan>");
+	if(xml>0) {	fprintf(fptr, "\t<ending>\Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded</ending> \n",
+		        PACKAGE_STRING, num_hosts, elapsed_seconds,
+                        num_hosts/elapsed_seconds, responders);
+			fprintf(fptr, "</arpscan>");		}
    }
    return 0;
 }
@@ -661,8 +664,8 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
    msg = make_message("%s\t", my_ntoa(he->addr));
    if (xml > 0)
    {
-        fprintf(fptr, "<device id=\"%d\"> \n", xml);
-        fprintf(fptr, "<ip>%s</ip> \n", my_ntoa(he->addr));
+        fprintf(fptr, "\t<device id=\"%d\"> \n", xml);
+        fprintf(fptr, "\t\t<ip>%s</ip> \n", my_ntoa(he->addr));
         xml++;
    }
 /*
@@ -673,6 +676,12 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
                       arpei->ar_sha[0], arpei->ar_sha[1],
                       arpei->ar_sha[2], arpei->ar_sha[3],
                       arpei->ar_sha[4], arpei->ar_sha[5]);
+  if(xml>0)
+  {   fprintf(fptr, "\t\t<macadress> %.2x:%.2x:%.2x:%.2x:%.2x:%.2x  </macadress> \n",
+                      arpei->ar_sha[0], arpei->ar_sha[1],
+                      arpei->ar_sha[2], arpei->ar_sha[3],
+                      arpei->ar_sha[4], arpei->ar_sha[5]);
+  }
    free(cp);
 /*
  *	Check that the source address in the Ethernet frame header is the same
@@ -686,7 +695,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
                          frame_hdr->src_addr[2], frame_hdr->src_addr[3],
                          frame_hdr->src_addr[4], frame_hdr->src_addr[5]);
       if(xml>0)
-      {   fprintf(fptr, "<macadress2>%.2x:%.2x:%.2x:%.2x:%.2x:%.2x</macadress2> \n",
+      {   fprintf(fptr, "\t\t<macadress2>%.2x:%.2x:%.2x:%.2x:%.2x:%.2x</macadress2> \n",
                          frame_hdr->src_addr[0], frame_hdr->src_addr[1],
                          frame_hdr->src_addr[2], frame_hdr->src_addr[3],
                          frame_hdr->src_addr[4], frame_hdr->src_addr[5]);
@@ -718,12 +727,12 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
      if (vendor)
      {
          msg = make_message("%s\t%s", cp, vendor);
-         if (xml > 0) { fprintf(fptr, "<vendor>%s</vendor> \n", vendor); }
+         if (xml > 0) { fprintf(fptr, "\t\t<vendor>%s</vendor> \n", vendor); }
      }
       else
      {
          msg = make_message("%s\t%s", cp, "(Unknown)");
-         if (xml > 0) { fprintf(fptr, "<vendor>Unknown</vendor> \n"); }
+         if (xml > 0) { fprintf(fptr, "\t\t<vendor>Unknown</vendor> \n"); }
      }
       free(cp);
 /*
@@ -745,7 +754,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          cp = msg;
          cp2 = hexstring(extra_data, extra_data_len);
          msg = make_message("%s\tPadding=%s", cp, cp2);
-         if (xml > 0) { fprintf(fptr, "<padding>%s</padding> \n",  cp2); }
+         if (xml > 0) { fprintf(fptr, "\t\t<padding>%s</padding> \n",  cp2); }
          free(cp2);
          free(cp);
       }
@@ -756,7 +765,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          cp = msg;
          if (framing == FRAMING_LLC_SNAP) {
             msg = make_message("%s (802.2 LLC/SNAP)", cp);
-	   if (xml > 0) { fprintf(fptr, "<framing>%s (802.2 LLC/SNAP</framing> \n",  cp); }
+	   if (xml > 0) { fprintf(fptr, "\t\t<framing>%s (802.2 LLC/SNAP</framing> \n",  cp); }
          }
          free(cp);
       }
@@ -766,7 +775,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (vlan_id != -1) {
          cp = msg;
          msg = make_message("%s (802.1Q VLAN=%d)", cp, vlan_id);
-         if (xml > 0) { fprintf(fptr, "<vlan>%s (802.1Q VLAN=%d)</vlan> \n",  cp, vlan_id); }
+         if (xml > 0) { fprintf(fptr, "\t\t<vlan>%s (802.1Q VLAN=%d)</vlan> \n",  cp, vlan_id); }
          free(cp);
       }
 /*
@@ -776,7 +785,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (ntohs(arpei->ar_pro) != 0x0800) {
          cp = msg;
          msg = make_message("%s (ARP Proto=0x%04x)", cp, ntohs(arpei->ar_pro));
-         if (xml > 0) { fprintf(fptr, "<protocol>%s (ARP Proto=0x%04x)</protocol> \n", cp, ntohs(arpei->ar_pro)); }
+         if (xml > 0) { fprintf(fptr, "\t\t<protocol>%s (ARP Proto=0x%04x)</protocol> \n", cp, ntohs(arpei->ar_pro)); }
 
          free(cp);
       }
@@ -786,7 +795,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (!he->live) {
          cp = msg;
          msg = make_message("%s (DUP: %u)", cp, he->num_recv);
-         if (xml > 0) { fprintf(fptr, "<dup>%s (DUP: %u)</dup> \n",  cp, he->num_recv); }
+         if (xml > 0) { fprintf(fptr, "\t\t<dup>%s (DUP: %u)</dup> \n",  cp, he->num_recv); }
          free(cp);
       }
 /*
@@ -808,7 +817,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          rtt_us = rtt.tv_sec * 1000000 + rtt.tv_usec;
          cp=msg;
          msg=make_message("%s\tRTT=%lu.%03lu ms", cp, rtt_us/1000, rtt_us%1000);
-         if (xml > 0) { fprintf(fptr, "%s\tRTT=%lu.%03lu ms", cp, rtt_us/1000, rtt_us%1000); }
+         if (xml > 0) { fprintf(fptr, "\t%s\tRTT=%lu.%03lu ms", cp, rtt_us/1000, rtt_us%1000); }
          free(cp);
       }
    }	/* End if (!quiet_flag) */
@@ -819,7 +828,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
    free(msg);
    if (xml > 0)  
    {
-           fprintf(fptr, "</device> \n");
+           fprintf(fptr, "\t</device> \n");
 /*         fclose(fptr); */
    }
 }
@@ -948,7 +957,7 @@ clean_up(pcap_t *pcap_handle) {
             err_msg("pcap_stats: %s", pcap_geterr(pcap_handle));
 
 	 printf("%u packets received by filter, %u packets dropped by kernel\n", stats.ps_recv, stats.ps_drop);
-         if (xml > 0) { fprintf(fptr, "<stats>%u packets received by filter, %u packets dropped by kernel </stats>\n", stats.ps_recv, stats.ps_drop); }
+         if (xml > 0) { fprintf(fptr, "\t<stats>%u packets received by filter, %u packets dropped by kernel </stats>\n", stats.ps_recv, stats.ps_drop); }
 
       }
    }
@@ -1233,6 +1242,7 @@ usage(int status, int detailed) {
       fprintf(stdout, "\t\t\tprograms that understand the pcap file format, such as\n");
       fprintf(stdout, "\t\t\t\"tcpdump\" and \"wireshark\".\n");
       fprintf(stdout, "\n--rtt or -D\t\tDisplay the packet round-trip time.\n");
+      fprintf(stdout, "\n-C\t\tSave the output in xml file.\n");
    } else {
       fprintf(stdout, "use \"arp-scan --help\" for detailed information on the available options.\n");
    }
@@ -1724,6 +1734,7 @@ callback(u_char *args ATTRIBUTE_UNUSED,
  */
    if (n < ETHER_HDR_SIZE + ARP_PKT_SIZE) {
       printf("%d byte packet too short to decode\n", n);
+
       return;
    }
 /*
