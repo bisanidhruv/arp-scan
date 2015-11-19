@@ -90,6 +90,8 @@ static int rtt_flag=0;			/* Display round-trip time */
 static pcap_dumper_t *pcap_dump_handle = NULL;	/* pcap savefile handle */
 static int plain_flag=0;		/* Only show host information */
 unsigned int random_seed=0;
+static int xml=0;                   /* output format 1=xml */
+FILE *fptr;
 
 int
 main(int argc, char *argv[]) {
@@ -647,6 +649,12 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
  *	Set msg to the IP address of the host entry and a tab.
  */
    msg = make_message("%s\t", my_ntoa(he->addr));
+   if (xml > 0)
+   {
+        fprintf(fptr, "<device id=\"%d\"> \n", xml);
+        fprintf(fptr, "<ip>%s</ip> \n", my_ntoa(he->addr));
+        xml++;
+   }
 /*
  *	Decode ARP packet
  */
@@ -667,6 +675,12 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
                          frame_hdr->src_addr[0], frame_hdr->src_addr[1],
                          frame_hdr->src_addr[2], frame_hdr->src_addr[3],
                          frame_hdr->src_addr[4], frame_hdr->src_addr[5]);
+      if(xml>0)
+      {   fprintf(fptr, "<macadress2>%.2x:%.2x:%.2x:%.2x:%.2x:%.2x</macadress2> \n",
+                         frame_hdr->src_addr[0], frame_hdr->src_addr[1],
+                         frame_hdr->src_addr[2], frame_hdr->src_addr[3],
+                         frame_hdr->src_addr[4], frame_hdr->src_addr[5]);
+      }
       free(cp);
    }
 /*
@@ -691,10 +705,16 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          oui_end--;
       }
       cp = msg;
-      if (vendor)
+     if (vendor)
+     {
          msg = make_message("%s\t%s", cp, vendor);
+         if (xml > 0) { fprintf(fptr, "<vendor>%s</vendor> \n", vendor); }
+     }
       else
+     {
          msg = make_message("%s\t%s", cp, "(Unknown)");
+         if (xml > 0) { fprintf(fptr, "<vendor>Unknown</vendor> \n"); }
+     }
       free(cp);
 /*
  *	Check that any data after the ARP packet is zero.
@@ -715,6 +735,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          cp = msg;
          cp2 = hexstring(extra_data, extra_data_len);
          msg = make_message("%s\tPadding=%s", cp, cp2);
+         if (xml > 0) { fprintf(fptr, "<padding>%s</padding> \n",  cp2); }
          free(cp2);
          free(cp);
       }
@@ -780,6 +801,11 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
  */
    printf("%s\n", msg);
    free(msg);
+   if (xml > 0)  
+   {
+           fprintf(fptr, "</device> \n");
+/*         fclose(fptr); */
+   }
 }
 
 /*
@@ -1754,6 +1780,7 @@ process_options(int argc, char *argv[]) {
       {"help", no_argument, 0, 'h'},
       {"retry", required_argument, 0, 'r'},
       {"timeout", required_argument, 0, 't'},
+      {"xml", no_argument, 0, 'C'},
       {"interval", required_argument, 0, 'i'},
       {"backoff", required_argument, 0, 'b'},
       {"verbose", no_argument, 0, 'v'},
@@ -1799,7 +1826,7 @@ process_options(int argc, char *argv[]) {
  * Digits:      0123456789
  */
    const char *short_options =
-      "f:hr:t:i:b:vVn:I:qgRNB:O:s:o:H:p:T:P:a:A:y:u:w:S:F:m:lLQ:W:Dx";
+      "f:hr:t:i:b:vVn:I:qgRNB:O:s:o:H:p:T:P:a:A:y:u:w:S:F:m:lLQ:W:Dx:C";
    int arg;
    int options_index=0;
 
@@ -1829,6 +1856,10 @@ process_options(int argc, char *argv[]) {
             break;
          case 'v':	/* --verbose */
             verbose++;
+            break;
+	case 'C':
+            arp_scan_xml(); /*--xml output */
+            xml++;
             break;
          case 'V':	/* --version */
             arp_scan_version();
@@ -1978,6 +2009,13 @@ arp_scan_version (void) {
    fprintf(stdout, "For more information about these matters, see the file named COPYING.\n");
    fprintf(stdout, "\n");
    fprintf(stdout, "%s\n", pcap_lib_version());
+}
+void
+arp_scan_xml (void) {
+        fptr = fopen("arp-scan.xml","a");
+        fprintf(fptr, "<?xml version=\"1.0\"?> \n");
+        fprintf(fptr, "<arpscan> \n");
+        fprintf(stdout, "XML OUTPUT ACTIVE \n");
 }
 
 /*
