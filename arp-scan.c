@@ -215,6 +215,12 @@ main(int argc, char *argv[]) {
                 pkt_read_file_flag ? "savefile" : if_name,
                 pcap_datalink_val_to_name(datalink),
                 pcap_datalink_val_to_description(datalink));
+		if(xml >0){
+		   fprintf(fptr, "<detail>Interface: %s, datalink type: %s (%s)</detail> /n",
+                	pkt_read_file_flag ? "savefile" : if_name,
+	                pcap_datalink_val_to_name(datalink),
+	                pcap_datalink_val_to_description(datalink));
+			}
       }
       if (datalink != DLT_EN10MB) {
          warn_msg("WARNING: Unsupported datalink type");
@@ -611,6 +617,10 @@ main(int argc, char *argv[]) {
       printf("Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded\n",
              PACKAGE_STRING, num_hosts, elapsed_seconds,
              num_hosts/elapsed_seconds, responders);
+	fprintf(fptr, "<ending>\"Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded</ending> \n",
+	     PACKAGE_STRING, num_hosts, elapsed_seconds,
+             num_hosts/elapsed_seconds, responders);
+	fprintf(fptr, "</arpscan>");
    }
    return 0;
 }
@@ -746,6 +756,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          cp = msg;
          if (framing == FRAMING_LLC_SNAP) {
             msg = make_message("%s (802.2 LLC/SNAP)", cp);
+	   if (xml > 0) { fprintf(fptr, "<framing>%s (802.2 LLC/SNAP</framing> \n",  cp); }
          }
          free(cp);
       }
@@ -755,6 +766,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (vlan_id != -1) {
          cp = msg;
          msg = make_message("%s (802.1Q VLAN=%d)", cp, vlan_id);
+         if (xml > 0) { fprintf(fptr, "<vlan>%s (802.1Q VLAN=%d)</vlan> \n",  cp, vlan_id); }
          free(cp);
       }
 /*
@@ -764,6 +776,8 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (ntohs(arpei->ar_pro) != 0x0800) {
          cp = msg;
          msg = make_message("%s (ARP Proto=0x%04x)", cp, ntohs(arpei->ar_pro));
+         if (xml > 0) { fprintf(fptr, "<protocol>%s (ARP Proto=0x%04x)</protocol> \n", cp, ntohs(arpei->ar_pro)); }
+
          free(cp);
       }
 /*
@@ -772,6 +786,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (!he->live) {
          cp = msg;
          msg = make_message("%s (DUP: %u)", cp, he->num_recv);
+         if (xml > 0) { fprintf(fptr, "<dup>%s (DUP: %u)</dup> \n",  cp, he->num_recv); }
          free(cp);
       }
 /*
@@ -793,6 +808,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          rtt_us = rtt.tv_sec * 1000000 + rtt.tv_usec;
          cp=msg;
          msg=make_message("%s\tRTT=%lu.%03lu ms", cp, rtt_us/1000, rtt_us%1000);
+         if (xml > 0) { fprintf(fptr, "%s\tRTT=%lu.%03lu ms", cp, rtt_us/1000, rtt_us%1000); }
          free(cp);
       }
    }	/* End if (!quiet_flag) */
@@ -931,8 +947,9 @@ clean_up(pcap_t *pcap_handle) {
          if ((pcap_stats(pcap_handle, &stats)) < 0)
             err_msg("pcap_stats: %s", pcap_geterr(pcap_handle));
 
-         printf("%u packets received by filter, %u packets dropped by kernel\n",
-                stats.ps_recv, stats.ps_drop);
+	 printf("%u packets received by filter, %u packets dropped by kernel\n", stats.ps_recv, stats.ps_drop);
+         if (xml > 0) { fprintf(fptr, "<stats>%u packets received by filter, %u packets dropped by kernel </stats>\n", stats.ps_recv, stats.ps_drop); }
+
       }
    }
    if (pcap_dump_handle) {
