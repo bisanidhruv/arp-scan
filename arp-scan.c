@@ -131,6 +131,7 @@ main(int argc, char *argv[]) {
 /*
  *      Process options.
  */
+ /*  fprintf(fptr, "%s", argv); */
    process_options(argc, argv);
 /*
  *      Get program start time for statistics displayed on completion.
@@ -166,6 +167,7 @@ main(int argc, char *argv[]) {
           interface_mac[4]==0 && interface_mac[5]==0) {
          err_msg("ERROR: Could not obtain MAC address for interface %s",
                  if_name);
+	 if(xml>0) { fprintf(fptr, "<er>ERROR: Could not obtain MAC address for interface %s</er> /n", if_name); }
       }
       if (source_mac_flag == 0)
          memcpy(source_mac, interface_mac, ETH_ALEN);
@@ -215,11 +217,11 @@ main(int argc, char *argv[]) {
                 pkt_read_file_flag ? "savefile" : if_name,
                 pcap_datalink_val_to_name(datalink),
                 pcap_datalink_val_to_description(datalink));
-		if(xml >0){
-		   fprintf(fptr, "\t<detail>Interface: %s, datalink type: %s (%s)</detail> \n",
-                	pkt_read_file_flag ? "savefile" : if_name,
-	                pcap_datalink_val_to_name(datalink),
-	                pcap_datalink_val_to_description(datalink));
+		if(xml>0) {
+		      fprintf(fptr, "<detail>Interface: %s, datalink type: %s (%s)</detail>\n",
+	                pkt_read_file_flag ? "savefile" : if_name,
+        	        pcap_datalink_val_to_name(datalink),
+                	pcap_datalink_val_to_description(datalink));
 			}
       }
       if (datalink != DLT_EN10MB) {
@@ -290,7 +292,10 @@ main(int argc, char *argv[]) {
                                  interface_mac[2], interface_mac[3],
                                  interface_mac[4], interface_mac[5]);
       if (verbose > 1)
-         warn_msg("DEBUG: pcap filter string: \"%s\"", filter_string);
+	{
+		warn_msg("DEBUG: pcap filter string: \"%s\"", filter_string);
+		if(xml>0) fprintf(fptr, "<debug>DEBUG: pcap filter string: \"%s\" </debug> \n", filter_string);
+	}
       if ((pcap_compile(pcap_handle, &filter, filter_string, OPTIMISE,
            netmask)) < 0)
          err_msg("pcap_compile: %s", pcap_geterr(pcap_handle));
@@ -345,29 +350,35 @@ main(int argc, char *argv[]) {
 
       fn = get_mac_vendor_filename(ouifilename, DATADIR, OUIFILENAME);
       count = add_mac_vendor(hash_table, fn);
-      if (verbose > 1 && count > 0)
-         warn_msg("DEBUG: Loaded %d IEEE OUI/Vendor entries from %s.",
-                  count, fn);
+      if (verbose > 1 && count > 0) 
+         warn_msg("<debug>DEBUG: Loaded %d IEEE OUI/Vendor entries from %s.</debug>\n",
+                  count, fn); 
+	if (xml>0)	fprintf(fptr, "<debug>DEBUG: Loaded %d IEEE OUI/Vendor entries from %s.</debug>\n", count, fn);
+
       free(fn);
 
       fn = get_mac_vendor_filename(iabfilename, DATADIR, IABFILENAME);
       count = add_mac_vendor(hash_table, fn);
       if (verbose > 1 && count > 0)
-         warn_msg("DEBUG: Loaded %d IEEE IAB/Vendor entries from %s.",
-                  count, fn);
+	{
+         warn_msg("DEBUG: Loaded %d IEEE IAB/Vendor entries from %s.", count, fn);
+         if(xml>0) fprintf(fptr, "<debug>DEBUG: Loaded %d IEEE IAB/Vendor entries from %s.</debug>\n",  count, fn);
+	}
       free(fn);
 
       fn = get_mac_vendor_filename(macfilename, DATADIR, MACFILENAME);
       count = add_mac_vendor(hash_table, fn);
       if (verbose > 1 && count > 0)
-         warn_msg("DEBUG: Loaded %d MAC/Vendor entries from %s.",
-                  count, fn);
+	{
+         warn_msg("DEBUG: Loaded %d MAC/Vendor entries from %s.",count, fn);
+         if(xml>0) fprintf(fptr, "<debug>DEBUG: Loaded %d IEEE Mac/Vendor entries from %s.</debug>\n",  count, fn);
+	}
       free(fn);
    }
 /*
  *      Populate the list from the specified file if --file was specified, or
  *	from the interface address and mask if --localnet was specified, or
- *      otherwise from the remaining command line arguments.
+ *      otherwise from the re#maining command line arguments.
  */
    if (filename_flag) { /* Populate list from file */
       FILE *fp;
@@ -490,6 +501,8 @@ main(int argc, char *argv[]) {
       if (verbose > 1) {
          warn_msg("DEBUG: pkt len=%u bytes, bandwidth=%u bps, interval=%u us",
                   packet_out_len, bandwidth, interval);
+         if(xml>0) { fprintf(fptr, "<debug>DEBUG: pkt len=%u bytes, bandwidth=%u bps, interval=%u us </debug> \n", packet_out_len, bandwidth, interval); }
+
       }
    }
 /*
@@ -498,8 +511,17 @@ main(int argc, char *argv[]) {
    if (!plain_flag) {
       printf("Starting %s with %u hosts (http://www.nta-monitor.com/tools/arp-scan/)\n",
           PACKAGE_STRING, num_hosts);
-      if(xml>0) { fprintf(fptr, "\t<detail>Starting %s with %u hosts (http://www.nta-monitor.com/tools/arp-scan/)</detail> \n",
-          PACKAGE_STRING, num_hosts); }
+      if(xml>0) { 
+	fprintf(fptr, "<detail>Starting %s with %u hosts (http://www.nta-monitor.com/tools/arp-scan/)</detail> \n", 
+			PACKAGE_STRING, num_hosts);
+        fprintf(fptr, "\t<table>\n");
+        fprintf(fptr, "\t<headt>\n");
+        fprintf(fptr, "\t\t<g3>IP</g3>\n");
+        fprintf(fptr, "\t\t<g3>Mac Address</g3>\n");
+        fprintf(fptr, "\t\t<g3>Vendor</g3>\n");
+        fprintf(fptr, "\t\t<g3>Duplicate</g3>\n");
+	fprintf(fptr, "\t</headt>\n");
+	}
    }
 /*
  *      Display the lists if verbose setting is 3 or more.
@@ -620,7 +642,7 @@ main(int argc, char *argv[]) {
       printf("Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded\n",
              PACKAGE_STRING, num_hosts, elapsed_seconds,
              num_hosts/elapsed_seconds, responders);
-	if(xml>0) {	fprintf(fptr, "\t<ending>\Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded</ending> \n",
+	if(xml>0) {	fprintf(fptr, "\t<ending>Ending %s: %u hosts scanned in %.3f seconds (%.2f hosts/sec). %u responded</ending> \n",
 		        PACKAGE_STRING, num_hosts, elapsed_seconds,
                         num_hosts/elapsed_seconds, responders);
 			fprintf(fptr, "</arpscan>");		}
@@ -753,8 +775,8 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (nonzero && verbose) {
          cp = msg;
          cp2 = hexstring(extra_data, extra_data_len);
-         msg = make_message("%s\tPadding=%s", cp, cp2);
-         if (xml > 0) { fprintf(fptr, "\t\t<padding>%s</padding> \n",  cp2); }
+         msg = make_message("%s\tPadding=%s ", cp, cp2);
+/*         if (xml > 0) { fprintf(fptr, "\t\t<padding>%s</padding> \n",  cp2); }*/
          free(cp2);
          free(cp);
       }
@@ -795,7 +817,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (!he->live) {
          cp = msg;
          msg = make_message("%s (DUP: %u)", cp, he->num_recv);
-         if (xml > 0) { fprintf(fptr, "\t\t<dup>%s (DUP: %u)</dup> \n",  cp, he->num_recv); }
+         if (xml > 0) { fprintf(fptr, "\t\t<dup> %s (DUP: %u)</dup> \n",  cp, he->num_recv); }
          free(cp);
       }
 /*
@@ -957,7 +979,7 @@ clean_up(pcap_t *pcap_handle) {
             err_msg("pcap_stats: %s", pcap_geterr(pcap_handle));
 
 	 printf("%u packets received by filter, %u packets dropped by kernel\n", stats.ps_recv, stats.ps_drop);
-         if (xml > 0) { fprintf(fptr, "\t<stats>%u packets received by filter, %u packets dropped by kernel </stats>\n", stats.ps_recv, stats.ps_drop); }
+         if (xml > 0) { fprintf(fptr, "\t</table>\n \t<stats>%u packets received by filter, %u packets dropped by kernel </stats>\n", stats.ps_recv, stats.ps_drop); }
 
       }
    }
@@ -1857,7 +1879,6 @@ process_options(int argc, char *argv[]) {
       "f:hr:t:i:b:vVn:I:qgRNB:O:s:o:H:p:T:P:a:A:y:u:w:S:F:m:lLQ:W:Dx:C";
    int arg;
    int options_index=0;
-
    while ((arg=getopt_long_only(argc, argv, short_options, long_options, &options_index)) != -1) {
       switch (arg) {
          struct in_addr source_ip_address;
@@ -2042,8 +2063,11 @@ void
 arp_scan_xml (void) {
         fptr = fopen("arp-scan.xml","a");
         fprintf(fptr, "<?xml version=\"1.0\"?> \n");
+	fprintf(fptr, "<?xml-stylesheet type=\"text/css\" href=\"arpscan.css\"?>");
+	time_t t;
+        time(&t);
         fprintf(fptr, "<arpscan> \n");
-        fprintf(stdout, "XML OUTPUT ACTIVE \n");
+	fprintf(fptr, "<heading> Arp-Scan Report: %s </heading> \n", ctime(&t));
 }
 
 /*
