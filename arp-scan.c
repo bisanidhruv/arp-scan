@@ -519,6 +519,7 @@ main(int argc, char *argv[]) {
         fprintf(fptr, "\t\t<g3>IP</g3>\n");
         fprintf(fptr, "\t\t<g3>Mac Address</g3>\n");
         fprintf(fptr, "\t\t<g3>Vendor</g3>\n");
+        fprintf(fptr, "\t\t<g3>Padding</g3>\n");
         fprintf(fptr, "\t\t<g3>Duplicate</g3>\n");
 	fprintf(fptr, "\t</headt>\n");
 	}
@@ -699,7 +700,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
                       arpei->ar_sha[2], arpei->ar_sha[3],
                       arpei->ar_sha[4], arpei->ar_sha[5]);
   if(xml>0)
-  {   fprintf(fptr, "\t\t<macadress> %.2x:%.2x:%.2x:%.2x:%.2x:%.2x  </macadress> \n",
+  {   fprintf(fptr, "\t\t<macadress>%.2x:%.2x:%.2x:%.2x:%.2x:%.2x</macadress> \n",
                       arpei->ar_sha[0], arpei->ar_sha[1],
                       arpei->ar_sha[2], arpei->ar_sha[3],
                       arpei->ar_sha[4], arpei->ar_sha[5]);
@@ -776,10 +777,15 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
          cp = msg;
          cp2 = hexstring(extra_data, extra_data_len);
          msg = make_message("%s\tPadding=%s ", cp, cp2);
-/*         if (xml > 0) { fprintf(fptr, "\t\t<padding>%s</padding> \n",  cp2); }*/
+        if (xml > 0) { fprintf(fptr, "\t\t<padding>%s</padding>\n",  cp2); }
          free(cp2);
          free(cp);
       }
+	else
+		{ 
+
+        if (xml > 0) { fprintf(fptr, "\t\t<padding></padding>\n"); }
+}	
 /*
  *	If the framing type is not Ethernet II, then report the framing type.
  */
@@ -817,7 +823,7 @@ display_packet(host_entry *he, arp_ether_ipv4 *arpei,
       if (!he->live) {
          cp = msg;
          msg = make_message("%s (DUP: %u)", cp, he->num_recv);
-         if (xml > 0) { fprintf(fptr, "\t\t<dup> %s (DUP: %u)</dup> \n",  cp, he->num_recv); }
+         if (xml > 0) { fprintf(fptr, "\t\t<dup>%u</dup>\n",  he->num_recv); }
          free(cp);
       }
 /*
